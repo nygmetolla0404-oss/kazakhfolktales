@@ -1,0 +1,31 @@
+<!doctype html><meta charset="utf-8"><title>audio list</title>
+<script src="../js/data.js"></script><script src="../js/data-kk.js"></script><script src="../js/i18n.js"></script><script src="../js/extra.js"></script>
+<pre id="out"></pre>
+<script>
+/* Lists every narration line with its voice. Used by tools/make_audio.py */
+const C = [], add = (lang, voice, text, rate) => { if (text && text.trim()) C.push({ lang, voice, text: text.trim(), rate: rate || '' }); };
+STORIES.forEach(s => {
+  ['en', 'kk'].forEach(l => { add(l, 'guide', NARR.welcome(s, l)); add(l, 'guide', NARR.near(s, l)); add(l, 'guide', NARR.done(s, l)); });
+  s.story.forEach(p => add('en', 'guide', p));
+  (s.storyKk || []).forEach(p => add('kk', 'guide', p));
+  add('en', 'guide', s.sum.en); add('kk', 'guide', s.sum.kk);
+  s.trailer.forEach(p => add('en', 'narrator', p));
+  s.chars.forEach(c => add('en', VOICE_OF(c.a), c.line));
+  const fw = s.letter.from.split(/[ ,]/)[0];
+  const ch = s.chars.find(c => c.n.en.split(/[ ,]/)[0] === fw) || s.chars[0];
+  const lv = ch.a.creature ? ({ '🐺': 'f_old', '🦅': 'f_bird', '🪕': 'm_old' }[ch.a.creature] || 'm_deep') : VOICE_OF(ch.a);
+  s.letter.text.split('\n').filter(x => x.trim()).forEach(p => add('en', lv, p));
+  s.guide.forEach(g => { add('en', 'guide', g.q); add('en', 'guide', g.m); });
+  add('en', 'guide', `Which value does “${s.en}” teach? Explain in two sentences.`);
+  s.vocab.forEach(v => add('en', 'guide', v[0], '-15%'));
+});
+['en', 'kk'].forEach(l => STORIES.forEach(s => { ['travel', 'heroes', 'trailer', 'letters', 'tasks', 'guide'].forEach(k => add(l, 'guide', SAY[k](s, l))); }));
+SAY.ask.forEach(x => add(x.lang, 'guide', x.text));
+['en', 'kk'].forEach(l => { add(l, 'guide', SAY.chosen[l]); add(l, 'guide', SAY.voiceOn[l]); });
+Object.keys(PROPS).forEach(p => ['en', 'kk'].forEach(l => add(l, 'guide', NARR.prop(p, l))));
+['en', 'kk'].forEach(l => { const G = GUIDE_LINES[l]; [G.hello, G.fly, G.win, G.quest, ...G.idle].forEach(x => add(l, 'guide', x)); });
+GAMES.path.forEach(g => { add('en', 'guide', g.s); add('en', 'guide', g.why); });
+GAMES.yurt.forEach(x => add('en', 'guide', x));
+const seen = {}; const U = C.filter(c => { const k = c.lang + '|' + c.text; if (seen[k]) return false; return seen[k] = 1; });
+document.getElementById('out').textContent = 'CLIPS:' + JSON.stringify(U);
+</script>
